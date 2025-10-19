@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   images: { 
     remotePatterns: [ 
-      { hostname: "", protocol: "https"},
-      { hostname: "", protocol: "https"},
+      { hostname: "next-moose-65.convex.cloud", protocol: "https"},
+      { hostname: "next-moose-65.convex.cloud", protocol: "https"},
     ],
   },
 };

@@ -2,7 +2,6 @@
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
-
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { CalendarDays, Cog, Plus } from "lucide-react";
@@ -24,34 +23,42 @@ export default function SellerDashboard() {
   const [accountCreatePending, setAccountCreatePending] = useState(false);
   const [error, setError] = useState(false);
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+
+  // Only query when user is loaded
+  const mpesaAccountId = useQuery(
+    api.users.getUsersMpesaAccountId,
+    isLoaded && user?.id ? { userId: user.id } : "skip"
+  );
+
+  const mpesaAccountStatus = useQuery(
+    api.users.getUsersMpesaAccountStatus,
+    isLoaded && user?.id ? { userId: user.id } : "skip"
+  ) as MpesaAccountStatus | null | undefined;
 
   // Mutation to create M-Pesa account
   const createMpesaAccount = useMutation(api.users.createMpesaSellerAccount);
 
-  // Query M-Pesa account ID from your Convex database
-  const mpesaAccountId = useQuery(api.users.getUsersMpesaAccountId, {
-    userId: user?.id || "",
-  });
-
-  // Query M-Pesa account status from your Convex database
-  const mpesaAccountStatus = useQuery(api.users.getUsersMpesaAccountStatus, {
-    userId: user?.id || "",
-  }) as MpesaAccountStatus | null | undefined;
-
   const isReadyToAcceptPayments =
     mpesaAccountStatus?.isActive && mpesaAccountStatus?.payoutsEnabled;
 
-  if (mpesaAccountId === undefined || mpesaAccountStatus === undefined) {
+  // Show spinner while loading
+  if (!isLoaded || mpesaAccountId === undefined || mpesaAccountStatus === undefined) {
     return <Spinner />;
   }
 
   const handleCreateMpesaAccount = async () => {
+    if (!user?.id) {
+      setError(true);
+      return;
+    }
+
     setAccountCreatePending(true);
     setError(false);
     try {
-      await createMpesaAccount({ userId: user?.id || "" });
-      setAccountCreatePending(false);
+      await createMpesaAccount({ userId: user.id });
+      // Refetch data after account creation
+      window.location.reload();
     } catch (error) {
       console.error("Error creating M-Pesa seller account:", error);
       setError(true);
@@ -62,10 +69,6 @@ export default function SellerDashboard() {
   const handleManageMpesaAccount = async () => {
     try {
       if (mpesaAccountId && mpesaAccountStatus?.isActive) {
-        // TODO: Implement M-Pesa dashboard/portal access
-        // const portalUrl = await getMpesaDashboardLink(mpesaAccountId);
-        // window.location.href = portalUrl;
-        
         alert("M-Pesa dashboard - coming soon");
       }
     } catch (error) {
@@ -75,8 +78,6 @@ export default function SellerDashboard() {
   };
 
   const handleRefreshStatus = async () => {
-    // The data will refresh automatically when you call this
-    // Since we're using useQuery, it will re-fetch automatically
     window.location.reload();
   };
 
@@ -138,10 +139,16 @@ export default function SellerDashboard() {
               </p>
               <button
                 onClick={handleCreateMpesaAccount}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                disabled={accountCreatePending}
               >
                 Create Seller Account
               </button>
+              {error && (
+                <p className="mt-2 text-red-600 text-sm">
+                  Error creating account. Please try again.
+                </p>
+              )}
             </div>
           )}
 
@@ -257,7 +264,6 @@ export default function SellerDashboard() {
                   )}
                   <button
                     onClick={() => {
-                      // TODO: Implement M-Pesa account completion flow
                       alert("M-Pesa account setup - coming soon");
                     }}
                     className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
@@ -298,7 +304,8 @@ export default function SellerDashboard() {
           {/* Loading States */}
           {accountCreatePending && (
             <div className="text-center py-4 text-gray-600">
-              Creating your seller account...
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+              <p>Creating your seller account...</p>
             </div>
           )}
         </div>
