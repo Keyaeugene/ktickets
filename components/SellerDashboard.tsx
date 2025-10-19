@@ -1,9 +1,24 @@
 "use client";
+import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
+
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { CalendarDays, Plus, Smartphone } from "lucide-react";
+import { CalendarDays, Cog, Plus } from "lucide-react";
 import Link from "next/link";
+import Spinner from "./Spinner";
+
+interface MpesaAccountStatus {
+  isActive: boolean;
+  paymentsEnabled: boolean;
+  payoutsEnabled: boolean;
+  requiresInformation: boolean;
+  requirements?: {
+    currently_due: string[];
+    eventually_due: string[];
+  };
+}
 
 export default function SellerDashboard() {
   const [accountCreatePending, setAccountCreatePending] = useState(false);
@@ -11,28 +26,58 @@ export default function SellerDashboard() {
   const router = useRouter();
   const { user } = useUser();
 
-  // TODO: Replace with actual M-Pesa onboarding status check
-  // For now, this is hardcoded to false until M-Pesa logic is ready
-  const isMpesaOnboarded = false;
-  const mpesaAccountActive = false;
+  // Mutation to create M-Pesa account
+  const createMpesaAccount = useMutation(api.users.createMpesaSellerAccount);
+
+  // Query M-Pesa account ID from your Convex database
+  const mpesaAccountId = useQuery(api.users.getUsersMpesaAccountId, {
+    userId: user?.id || "",
+  });
+
+  // Query M-Pesa account status from your Convex database
+  const mpesaAccountStatus = useQuery(api.users.getUsersMpesaAccountStatus, {
+    userId: user?.id || "",
+  }) as MpesaAccountStatus | null | undefined;
+
+  const isReadyToAcceptPayments =
+    mpesaAccountStatus?.isActive && mpesaAccountStatus?.payoutsEnabled;
+
+  if (mpesaAccountId === undefined || mpesaAccountStatus === undefined) {
+    return <Spinner />;
+  }
 
   const handleCreateMpesaAccount = async () => {
     setAccountCreatePending(true);
     setError(false);
     try {
-      // TODO: Implement M-Pesa account creation logic here
-      // await createMpesaSellerAccount();
-      
-      // Placeholder - remove this when implementing
-      setTimeout(() => {
-        alert("M-Pesa integration coming soon!");
-        setAccountCreatePending(false);
-      }, 1000);
+      await createMpesaAccount({ userId: user?.id || "" });
+      setAccountCreatePending(false);
     } catch (error) {
       console.error("Error creating M-Pesa seller account:", error);
       setError(true);
       setAccountCreatePending(false);
     }
+  };
+
+  const handleManageMpesaAccount = async () => {
+    try {
+      if (mpesaAccountId && mpesaAccountStatus?.isActive) {
+        // TODO: Implement M-Pesa dashboard/portal access
+        // const portalUrl = await getMpesaDashboardLink(mpesaAccountId);
+        // window.location.href = portalUrl;
+        
+        alert("M-Pesa dashboard - coming soon");
+      }
+    } catch (error) {
+      console.error("Error accessing M-Pesa portal:", error);
+      setError(true);
+    }
+  };
+
+  const handleRefreshStatus = async () => {
+    // The data will refresh automatically when you call this
+    // Since we're using useQuery, it will re-fetch automatically
+    window.location.reload();
   };
 
   return (
@@ -42,12 +87,12 @@ export default function SellerDashboard() {
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-8 text-white">
           <h2 className="text-2xl font-bold">Seller Dashboard</h2>
           <p className="text-blue-100 mt-2">
-            Manage your seller profile and M-Pesa payment settings
+            Manage your seller profile and payment settings
           </p>
         </div>
 
         {/* Main Content */}
-        {isMpesaOnboarded && mpesaAccountActive && (
+        {isReadyToAcceptPayments && (
           <>
             <div className="bg-white p-8 rounded-lg">
               <h2 className="text-2xl font-semibold text-gray-900 mb-6">
@@ -81,16 +126,11 @@ export default function SellerDashboard() {
         )}
 
         <div className="p-6">
-          {/* M-Pesa Account Creation Section */}
-          {!isMpesaOnboarded && !accountCreatePending && (
+          {/* Account Creation Section */}
+          {!mpesaAccountId && !accountCreatePending && (
             <div className="text-center py-8">
-              <div className="flex justify-center mb-4">
-                <div className="bg-blue-100 p-4 rounded-full">
-                  <Smartphone className="w-12 h-12 text-blue-600" />
-                </div>
-              </div>
               <h3 className="text-xl font-semibold mb-4">
-                Start Accepting Payments via M-Pesa
+                Start Accepting Payments
               </h3>
               <p className="text-gray-600 mb-6">
                 Create your seller account to start receiving payments securely
@@ -100,34 +140,31 @@ export default function SellerDashboard() {
                 onClick={handleCreateMpesaAccount}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Setup M-Pesa Account
+                Create Seller Account
               </button>
-              <p className="text-sm text-gray-500 mt-4">
-                Note: M-Pesa integration is coming soon
-              </p>
             </div>
           )}
 
-          {/* M-Pesa Account Status Section */}
-          {isMpesaOnboarded && (
+          {/* Account Status Section */}
+          {mpesaAccountId && mpesaAccountStatus && (
             <div className="space-y-6">
               {/* Status Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Account Status Card */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-gray-500">
-                    M-Pesa Account Status
+                    Account Status
                   </h3>
                   <div className="mt-2 flex items-center">
                     <div
                       className={`w-3 h-3 rounded-full mr-2 ${
-                        mpesaAccountActive
+                        mpesaAccountStatus.isActive
                           ? "bg-green-500"
                           : "bg-yellow-500"
                       }`}
                     />
                     <span className="text-lg font-semibold">
-                      {mpesaAccountActive ? "Active" : "Pending Setup"}
+                      {mpesaAccountStatus.isActive ? "Active" : "Pending Setup"}
                     </span>
                   </div>
                 </div>
@@ -141,7 +178,7 @@ export default function SellerDashboard() {
                     <div className="flex items-center">
                       <svg
                         className={`w-5 h-5 ${
-                          mpesaAccountActive
+                          mpesaAccountStatus.paymentsEnabled
                             ? "text-green-500"
                             : "text-gray-400"
                         }`}
@@ -155,15 +192,15 @@ export default function SellerDashboard() {
                         />
                       </svg>
                       <span className="ml-2">
-                        {mpesaAccountActive
-                          ? "Can accept M-Pesa payments"
+                        {mpesaAccountStatus.paymentsEnabled
+                          ? "Can accept payments"
                           : "Cannot accept payments yet"}
                       </span>
                     </div>
                     <div className="flex items-center">
                       <svg
                         className={`w-5 h-5 ${
-                          mpesaAccountActive
+                          mpesaAccountStatus.payoutsEnabled
                             ? "text-green-500"
                             : "text-gray-400"
                         }`}
@@ -177,7 +214,7 @@ export default function SellerDashboard() {
                         />
                       </svg>
                       <span className="ml-2">
-                        {mpesaAccountActive
+                        {mpesaAccountStatus.payoutsEnabled
                           ? "Can receive payouts"
                           : "Cannot receive payouts yet"}
                       </span>
@@ -187,52 +224,72 @@ export default function SellerDashboard() {
               </div>
 
               {/* Requirements Section */}
-              {!mpesaAccountActive && (
+              {mpesaAccountStatus.requiresInformation && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-yellow-800 mb-3">
                     Required Information
                   </h3>
-                  <div className="mb-3">
-                    <p className="text-yellow-800 font-medium mb-2">
-                      To activate your M-Pesa account, please provide:
-                    </p>
-                    <ul className="list-disc pl-5 text-yellow-700 text-sm">
-                      <li>M-Pesa registered phone number</li>
-                      <li>Business details (if applicable)</li>
-                      <li>Valid identification</li>
-                    </ul>
-                  </div>
+                  {(mpesaAccountStatus.requirements?.currently_due?.length ?? 0) > 0 && (
+                    <div className="mb-3">
+                      <p className="text-yellow-800 font-medium mb-2">
+                        Action Required:
+                      </p>
+                      <ul className="list-disc pl-5 text-yellow-700 text-sm">
+                        {mpesaAccountStatus.requirements?.currently_due?.map((req: string) => (
+                          <li key={req}>{req.replace(/_/g, " ")}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(mpesaAccountStatus.requirements?.eventually_due?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-yellow-800 font-medium mb-2">
+                        Eventually Needed:
+                      </p>
+                      <ul className="list-disc pl-5 text-yellow-700 text-sm">
+                        {mpesaAccountStatus.requirements?.eventually_due?.map(
+                          (req: string) => (
+                            <li key={req}>{req.replace(/_/g, " ")}</li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                  )}
                   <button
                     onClick={() => {
-                      // TODO: Implement M-Pesa onboarding flow
-                      alert("M-Pesa onboarding coming soon!");
+                      // TODO: Implement M-Pesa account completion flow
+                      alert("M-Pesa account setup - coming soon");
                     }}
                     className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
                   >
-                    Complete M-Pesa Setup
+                    Complete Requirements
                   </button>
                 </div>
               )}
 
               {/* Action Buttons */}
-              {mpesaAccountActive && (
-                <div className="flex flex-wrap gap-3 mt-6">
+              <div className="flex flex-wrap gap-3 mt-6">
+                {mpesaAccountStatus.isActive && (
                   <button
-                    onClick={() => {
-                      // TODO: Implement M-Pesa dashboard/settings
-                      alert("M-Pesa dashboard coming soon!");
-                    }}
+                    onClick={handleManageMpesaAccount}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                   >
-                    <Smartphone className="w-4 h-4 mr-2" />
-                    M-Pesa Settings
+                    <Cog className="w-4 h-4 mr-2" />
+                    Seller Dashboard
                   </button>
-                </div>
-              )}
+                )}
+                <button
+                  onClick={handleRefreshStatus}
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Refresh Status
+                </button>
+              </div>
 
               {error && (
                 <div className="mt-4 bg-red-50 text-red-600 p-3 rounded-lg">
-                  Unable to setup M-Pesa account. Please try again later.
+                  Unable to access M-Pesa dashboard. Please complete all
+                  requirements first.
                 </div>
               )}
             </div>
@@ -241,8 +298,7 @@ export default function SellerDashboard() {
           {/* Loading States */}
           {accountCreatePending && (
             <div className="text-center py-4 text-gray-600">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-              <p>Setting up your M-Pesa seller account...</p>
+              Creating your seller account...
             </div>
           )}
         </div>
