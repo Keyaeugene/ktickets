@@ -103,7 +103,7 @@ export const getEventAvailability = query({
           ).length
       );
 
-       // Count current valid offers
+    // Count current valid offers
     const now = Date.now();
     const activeOffers = await ctx.db
       .query("waitingList")
@@ -115,16 +115,16 @@ export const getEventAvailability = query({
         (entries) => entries.filter((e) => (e.offerExpiresAt ?? 0) > now).length
       );
 
-      const totalReserved = purchasedCount + activeOffers;
+    const totalReserved = purchasedCount + activeOffers;
 
-      return {
+    return {
       isSoldOut: totalReserved >= event.totalTickets,
       totalTickets: event.totalTickets,
       purchasedCount,
       activeOffers,
       remainingTickets: Math.max(0, event.totalTickets - totalReserved),
     };
-    },
+  },
 });
 
 // Helper function to check ticket availability for an event
@@ -182,19 +182,8 @@ export const checkAvailability = query({
 
 // Join waiting list for an event
 export const joinWaitingList = mutation({
-  // Function takes an event ID and user ID as arguments
   args: { eventId: v.id("events"), userId: v.string() },
   handler: async (ctx, { eventId, userId }) => {
-    // Rate limit check
-  //  const status = await rateLimiter.limit(ctx, "queueJoin", { key: userId });
-    //if (!status.ok) {
-      //throw new ConvexError(
-        //`You've joined the waiting list too many times. Please wait ${Math.ceil(
-          //status.retryAfter / (60 * 1000)
-       // )} minutes before trying again.`
-     // );
-   // }
-
     // First check if user already has an active entry in waiting list for this event
     // Active means any status except EXPIRED
     const existingEntry = await ctx.db
@@ -224,8 +213,8 @@ export const joinWaitingList = mutation({
       const waitingListId = await ctx.db.insert("waitingList", {
         eventId,
         userId,
-        status: WAITING_LIST_STATUS.OFFERED, // Mark as offered
-        offerExpiresAt: now + DURATIONS.TICKET_OFFER, // Set expiration time
+        status: WAITING_LIST_STATUS.OFFERED,
+        offerExpiresAt: now + DURATIONS.TICKET_OFFER,
       });
 
       // Schedule a job to expire this offer after the offer duration
@@ -242,7 +231,7 @@ export const joinWaitingList = mutation({
       await ctx.db.insert("waitingList", {
         eventId,
         userId,
-        status: WAITING_LIST_STATUS.WAITING, // Mark as waiting
+        status: WAITING_LIST_STATUS.WAITING,
       });
     }
 
@@ -250,11 +239,103 @@ export const joinWaitingList = mutation({
     return {
       success: true,
       status: available
-        ? WAITING_LIST_STATUS.OFFERED // If available, status is offered
-        : WAITING_LIST_STATUS.WAITING, // If not available, status is waiting
+        ? WAITING_LIST_STATUS.OFFERED
+        : WAITING_LIST_STATUS.WAITING,
       message: available
         ? `Ticket offered - you have ${DURATIONS.TICKET_OFFER / (60 * 1000)} minutes to purchase`
         : "Added to waiting list - you'll be notified when a ticket becomes available",
     };
+  },
+});
+
+// Purchase ticket
+export const purchaseTicket = mutation({
+  args: {
+    eventId: v.id("events"),
+    userId: v.string(),
+    waitingListId: v.id("waitingList"),
+    paymentInfo: v.object({
+      paymentIntentId: v.string(),
+      amount: v.number(),
+      mpesaTransactionDate: v.optional(v.string()),
+      phoneNumber: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, { eventId, userId, waitingListId, paymentInfo }) => {
+    console.log("Starting purchaseTicket handler", {
+      eventId,
+      userId,
+      waitingListId,
+    });
+
+    // Verify waiting list entry exists and is valid
+    const waitingListEntry = await ctx.db.get(waitingListId);
+    console.log("Waiting list entry:", waitingListEntry);
+
+    if (!waitingListEntry) {
+      console.error("Waiting list entry not found");
+      throw new Error("Waiting list entry not found");
+    }
+
+    if (waitingListEntry.status !== WAITING_LIST_STATUS.OFFERED) {
+      console.error("Invalid waiting list status", {
+        status: waitingListEntry.status,
+      });
+      throw new Error(
+        "Invalid waiting list status - ticket offer may have expired"
+      );
+    }
+
+    if (waitingListEntry.userId !== userId) {
+      console.error("User ID mismatch", {
+        waitingListUserId: waitingListEntry.userId,
+        requestUserId: userId,
+      });
+      throw new Error("Waiting list entry does not belong to this user");
+    }
+
+    // Verify event exists and is active
+    const event = await ctx.db.get(eventId);
+    console.log("Event details:", event);
+
+    if (!event) {
+      console.error("Event not found", { eventId });
+      throw new Error("Event not found");
+    }
+
+    if (event.is_cancelled) {
+      console.error("Attempted purchase of cancelled event", { eventId });
+      throw new Error("Event is no longer active");
+    }
+
+    try {
+      console.log("Creating ticket with payment info", paymentInfo);
+      // Create ticket with payment info
+      await ctx.db.insert("tickets", {
+        eventId,
+        userId,
+        purchasedAt: Date.now(),
+        status: TICKET_STATUS.VALID,
+        paymentIntentId: paymentInfo.paymentIntentId,
+        amount: paymentInfo.amount,
+      });
+
+      console.log("Updating waiting list status to purchased");
+      await ctx.db.patch(waitingListId, {
+        status: WAITING_LIST_STATUS.PURCHASED,
+      });
+
+      console.log("Scheduling queue processing");
+      // Schedule queue processing
+      await ctx.scheduler.runAfter(0, internal.waitingList.processQueue, {
+        eventId,
+      });
+
+      console.log("Purchase ticket completed successfully");
+      return { success: true, ticketId: waitingListId };
+    } catch (error) {
+      console.error("Failed to complete ticket purchase:", error);
+      throw new Error(`Failed to complete ticket purchase: ${error}`);
+    }
   },
 });

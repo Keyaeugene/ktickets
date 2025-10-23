@@ -54,4 +54,28 @@ export default defineSchema({
   })
     .index("by_user_id", ["userId"])
     .index("by_email", ["email"]),
+
+  payments: defineTable({
+    eventId: v.id("events"),
+    userId: v.string(),
+    waitingListId: v.id("waitingList"),
+    checkoutRequestId: v.string(),
+    amount: v.number(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("refunded")
+    ),
+    mpesaReceiptNumber: v.optional(v.string()),
+    phoneNumber: v.optional(v.string()),
+    transactionDate: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_checkout_request_id", ["checkoutRequestId"])
+    .index("by_status", ["status"])
+    .index("by_event", ["eventId"]),
 });
