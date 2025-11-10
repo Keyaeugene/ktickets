@@ -13,7 +13,7 @@ import { useEffect } from "react";
 export default function TicketPage() {
   const params = useParams();
   const { user } = useUser();
-  const ticket = useQuery(api.tickets.getTicketWithDetails, {
+  const ticket = useQuery(api.tickets.getTicketWithDetails   , {
     ticketId: params.id as Id<"tickets">,
   });
 
