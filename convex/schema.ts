@@ -3,14 +3,14 @@ import { v } from "convex/values";
 
 export default defineSchema({
   events: defineTable({
-    name: v.string(),
+    name:  v.string(),
     description: v.string(),
     location: v.string(),
     eventDate: v.number(),
     price: v.number(),
     totalTickets: v.number(),
     userId: v.string(),
-    imageStorageId: v.optional(v.id("_storage")),
+    imageStorageId: v. optional(v.id("_storage")),
     is_cancelled: v.optional(v.boolean()),
   }),
   tickets: defineTable({
@@ -21,15 +21,35 @@ export default defineSchema({
       v.literal("valid"),
       v.literal("used"),
       v.literal("refunded"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
+      v.literal("refund_pending"),
+      v.literal("refund_failed"),
+      v.literal("refund_timeout")
     ),
     paymentIntentId: v.optional(v.string()),
     amount: v.optional(v.number()),
+    
+    // M-Pesa payment details
+    mpesaReceiptNumber: v.optional(v. string()),
+    phoneNumber: v.optional(v.string()),
+    transactionDate: v.optional(v.string()),
+    
+    // Refund tracking fields
+    refundConversationId:  v.optional(v.string()),
+    refundOriginatorConversationId: v.optional(v.string()),
+    refundTransactionId: v.optional(v.string()),
+    refundMetadata: v.optional(v.any()),
+    refundError: v.optional(v.string()),
+    refundErrorCode:  v.optional(v.number()),
+    refundCompletedAt: v.optional(v.string()),
+    refundFailedAt: v.optional(v.string()),
   })
     .index("by_event", ["eventId"])
     .index("by_user", ["userId"])
     .index("by_user_event", ["userId", "eventId"])
-    .index("by_payment_intent", ["paymentIntentId"]),
+    .index("by_payment_intent", ["paymentIntentId"])
+    .index("by_refund_conversation_id", ["refundConversationId"])
+    .index("by_status", ["status"]),
 
   waitingList: defineTable({
     eventId: v.id("events"),
@@ -47,7 +67,7 @@ export default defineSchema({
     .index("by_user", ["userId"]),
 
   users: defineTable({
-    name: v.string(),
+    name: v. string(),
     email: v.string(),
     userId: v.string(),
     mpesaConnectId: v.optional(v.string()),
@@ -67,10 +87,10 @@ export default defineSchema({
       v.literal("failed"),
       v.literal("refunded")
     ),
-    mpesaReceiptNumber: v.optional(v.string()),
+    mpesaReceiptNumber: v.optional(v. string()),
     phoneNumber: v.optional(v.string()),
     transactionDate: v.optional(v.string()),
-    errorMessage: v.optional(v.string()),
+    errorMessage: v.optional(v. string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
