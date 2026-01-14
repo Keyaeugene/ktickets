@@ -21,12 +21,15 @@ export default function TicketCard({ ticketId }: { ticketId: Id<"tickets"> }) {
   const isPastEvent = ticket.event.eventDate < Date.now();
 
   const statusColors = {
-    valid: isPastEvent
+    valid:  isPastEvent
       ? "bg-gray-50 text-gray-600 border-gray-200"
       : "bg-green-50 text-green-700 border-green-100",
     used: "bg-gray-50 text-gray-600 border-gray-200",
     refunded: "bg-red-50 text-red-700 border-red-100",
     cancelled: "bg-red-50 text-red-700 border-red-100",
+    refund_pending: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    refund_failed: "bg-red-50 text-red-700 border-red-100",
+    refund_timeout:  "bg-orange-50 text-orange-700 border-orange-100",
   };
 
   const statusText = {
@@ -34,14 +37,17 @@ export default function TicketCard({ ticketId }: { ticketId: Id<"tickets"> }) {
     used: "Used",
     refunded: "Refunded",
     cancelled: "Cancelled",
+    refund_pending: "Refund Pending",
+    refund_failed: "Refund Failed",
+    refund_timeout:  "Refund Timeout",
   };
 
   return (
     <Link
       href={`/tickets/${ticketId}`}
-      className={`block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border ${
-        ticket.event.is_cancelled ? "border-red-200" : "border-gray-100"
-      } overflow-hidden ${isPastEvent ? "opacity-75 hover:opacity-100" : ""}`}
+      className={`block bg-white rounded-lg shadow-sm hover: shadow-md transition-all duration-200 border ${
+        ticket. event.is_cancelled ? "border-red-200" : "border-gray-100"
+      } overflow-hidden ${isPastEvent ?  "opacity-75 hover:opacity-100" : ""}`}
     >
       <div className="p-5">
         <div className="flex justify-between items-start mb-4">
@@ -62,7 +68,7 @@ export default function TicketCard({ ticketId }: { ticketId: Id<"tickets"> }) {
           <div className="flex flex-col items-end gap-2">
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${
-                ticket.event.is_cancelled
+                ticket.event. is_cancelled
                   ? "bg-red-50 text-red-700 border-red-100"
                   : statusColors[ticket.status]
               }`}
@@ -107,7 +113,7 @@ export default function TicketCard({ ticketId }: { ticketId: Id<"tickets"> }) {
                   : "text-blue-600"
             }`}
           >
-            Ksh {ticket.event.price.toFixed(2)}
+            Ksh {ticket.event. price.toFixed(2)}
           </span>
           <span className="text-gray-600 flex items-center">
             View Ticket <ArrowRight className="w-4 h-4 ml-1" />
