@@ -118,3 +118,4 @@ export const updateTicketStatus = mutation({
     return { success: true };
   },
 });
+

@@ -129,7 +129,7 @@ function PurchaseTicket({ eventId }: { eventId: Id<"events"> }) {
             {event && (
               <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
                 <p className="text-sm text-amber-900">
-                  Price: <span className="font-bold">£{event.price.toFixed(2)}</span>
+                  Price: <span className="font-bold"> Ksh {event.price.toFixed(2)}</span>
                 </p>
               </div>
             )}

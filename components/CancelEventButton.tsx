@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-
+   
 export default function CancelEventButton({
   eventId,
 }: {

@@ -123,7 +123,7 @@ export async function refundEventTickets(
 
         if (!ticket.phoneNumber) {
   throw new Error("Customer phone number not found");
-}
+} 
 
         // Check if ticket is already refunded to ensure idempotency
         if (ticket.status === "refunded" || ticket.status === "refund_pending") {
