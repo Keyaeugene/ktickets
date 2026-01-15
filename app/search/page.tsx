@@ -6,8 +6,9 @@ import { useSearchParams } from "next/navigation";
 import EventCard from "@/components/EventCard";
 import { Search } from "lucide-react";
 import Spinner from "@/components/Spinner";
+import { Suspense } from "react";
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
   const searchResults = useQuery(api.events.search, { searchTerm: query });
@@ -21,7 +22,7 @@ export default function SearchPage() {
   }
 
   const upcomingEvents = searchResults
-    .filter((event) => event.eventDate > Date.now())
+    . filter((event) => event.eventDate > Date.now())
     .sort((a, b) => a.eventDate - b.eventDate);
 
   const pastEvents = searchResults
@@ -86,5 +87,17 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[400px] flex items-center justify-center">
+        <Spinner />
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }
