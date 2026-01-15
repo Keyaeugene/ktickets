@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { getConvexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 
@@ -26,14 +25,14 @@ interface MpesaPaymentMetadata {
   PhoneNumber: string;
 }
 
-export async function POST(req: Request) {
+export async function POST(req:  Request) {
   console.log("M-Pesa webhook received at:", new Date().toISOString());
 
   try {
-    const body = (await req.json()) as MpesaCallbackData;
+    const body = (await req. json()) as MpesaCallbackData;
     console.log("Webhook body received:", JSON.stringify(body, null, 2));
 
-    const { stkCallback } = body.Body;
+    const { stkCallback } = body. Body;
     const { ResultCode, ResultDesc, CheckoutRequestID, CallbackMetadata } = stkCallback;
 
     // Log the result
@@ -43,24 +42,24 @@ export async function POST(req: Request) {
 
     // ResultCode 0 means success
     if (ResultCode === 0 && CallbackMetadata) {
-      console.log("Payment successful, processing...");
+      console.log("Payment successful, processing.. .");
 
       // Extract payment details from callback metadata
       const callbackItems = CallbackMetadata.Item;
-      const metadataMap: Record<string, any> = {};
+      const metadataMap:  Record<string, string | number> = {};
 
-      callbackItems?.forEach((item) => {
+      callbackItems?. forEach((item: { Name: string; Value: string | number }) => {
         metadataMap[item.Name] = item.Value;
       });
 
       const paymentMetadata: MpesaPaymentMetadata = {
-        Amount: metadataMap.Amount || 0,
-        MpesaReceiptNumber: metadataMap.MpesaReceiptNumber || "",
-        TransactionDate: metadataMap.TransactionDate || "",
-        PhoneNumber: metadataMap.PhoneNumber || "",
+        Amount: (metadataMap.Amount as number) || 0,
+        MpesaReceiptNumber: (metadataMap.MpesaReceiptNumber as string) || "",
+        TransactionDate: (metadataMap.TransactionDate as string) || "",
+        PhoneNumber: (metadataMap.PhoneNumber as string) || "",
       };
 
-      console.log("Extracted payment metadata:", paymentMetadata);
+      console. log("Extracted payment metadata:", paymentMetadata);
 
       try {
         // TODO: Get eventId and userId from CheckoutRequestID or from your database lookup
@@ -69,7 +68,7 @@ export async function POST(req: Request) {
           checkoutRequestId: CheckoutRequestID,
         });
 
-        if (!paymentRecord) {
+        if (! paymentRecord) {
           console.error("Payment record not found for CheckoutRequestID:", CheckoutRequestID);
           return new Response(
             JSON.stringify({ ResultCode: 1, ResultDesc: "Payment record not found" }),
@@ -93,7 +92,7 @@ export async function POST(req: Request) {
         console.log("Ticket created successfully:", ticketResult);
 
         // Update payment record to completed
-        await convex.mutation(api.payments.updatePaymentStatus, {
+        await convex. mutation(api.payments.updatePaymentStatus, {
           paymentId: paymentRecord._id,
           status: "completed",
           mpesaReceiptNumber: paymentMetadata.MpesaReceiptNumber,
@@ -113,7 +112,7 @@ export async function POST(req: Request) {
       console.log(`Payment failed: ${ResultDesc}`);
 
       try {
-        const paymentRecord = await convex.query(api.payments.getByCheckoutRequestId, {
+        const paymentRecord = await convex. query(api.payments.getByCheckoutRequestId, {
           checkoutRequestId: CheckoutRequestID,
         });
 
@@ -140,8 +139,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Webhook processing error:", error);
     return new Response(
-      JSON.stringify({ ResultCode: 1, ResultDesc: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ ResultCode: 1, ResultDesc:  "Internal server error" }),
+      { status: 500, headers: { "Content-Type":  "application/json" } }
     );
   }
 }

@@ -2,7 +2,6 @@
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
-import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { CalendarDays, Cog, Plus } from "lucide-react";
 import Link from "next/link";
@@ -13,7 +12,7 @@ interface MpesaAccountStatus {
   paymentsEnabled: boolean;
   payoutsEnabled: boolean;
   requiresInformation: boolean;
-  requirements?: {
+  requirements?:  {
     currently_due: string[];
     eventually_due: string[];
   };
@@ -22,13 +21,12 @@ interface MpesaAccountStatus {
 export default function SellerDashboard() {
   const [accountCreatePending, setAccountCreatePending] = useState(false);
   const [error, setError] = useState(false);
-  const router = useRouter();
   const { user, isLoaded } = useUser();
 
   // Only query when user is loaded
   const mpesaAccountId = useQuery(
     api.users.getUsersMpesaAccountId,
-    isLoaded && user?.id ? { userId: user.id } : "skip"
+    isLoaded && user?.id ?  { userId: user.id } : "skip"
   );
 
   const mpesaAccountStatus = useQuery(
@@ -40,7 +38,7 @@ export default function SellerDashboard() {
   const createMpesaAccount = useMutation(api.users.createMpesaSellerAccount);
 
   const isReadyToAcceptPayments =
-    mpesaAccountStatus?.isActive && mpesaAccountStatus?.payoutsEnabled;
+    mpesaAccountStatus?. isActive && mpesaAccountStatus?.payoutsEnabled;
 
   // Show spinner while loading
   if (!isLoaded || mpesaAccountId === undefined || mpesaAccountStatus === undefined) {
@@ -48,7 +46,7 @@ export default function SellerDashboard() {
   }
 
   const handleCreateMpesaAccount = async () => {
-    if (!user?.id) {
+    if (!user?. id) {
       setError(true);
       return;
     }
@@ -128,7 +126,7 @@ export default function SellerDashboard() {
 
         <div className="p-6">
           {/* Account Creation Section */}
-          {!mpesaAccountId && !accountCreatePending && (
+          {! mpesaAccountId && ! accountCreatePending && (
             <div className="text-center py-8">
               <h3 className="text-xl font-semibold mb-4">
                 Start Accepting Payments
@@ -171,7 +169,7 @@ export default function SellerDashboard() {
                       }`}
                     />
                     <span className="text-lg font-semibold">
-                      {mpesaAccountStatus.isActive ? "Active" : "Pending Setup"}
+                      {mpesaAccountStatus.isActive ?  "Active" : "Pending Setup"}
                     </span>
                   </div>
                 </div>
@@ -236,14 +234,14 @@ export default function SellerDashboard() {
                   <h3 className="text-sm font-medium text-yellow-800 mb-3">
                     Required Information
                   </h3>
-                  {(mpesaAccountStatus.requirements?.currently_due?.length ?? 0) > 0 && (
+                  {(mpesaAccountStatus.requirements?. currently_due?. length ??  0) > 0 && (
                     <div className="mb-3">
                       <p className="text-yellow-800 font-medium mb-2">
                         Action Required:
                       </p>
                       <ul className="list-disc pl-5 text-yellow-700 text-sm">
-                        {mpesaAccountStatus.requirements?.currently_due?.map((req: string) => (
-                          <li key={req}>{req.replace(/_/g, " ")}</li>
+                        {mpesaAccountStatus.requirements?.currently_due?.map((req:  string) => (
+                          <li key={req}>{req. replace(/_/g, " ")}</li>
                         ))}
                       </ul>
                     </div>

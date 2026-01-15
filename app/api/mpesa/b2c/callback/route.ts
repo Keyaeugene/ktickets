@@ -2,22 +2,22 @@ import { getConvexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 
 interface MpesaB2CCallbackData {
-  Result:  {
+  Result: {
     ResultType: number;
     ResultCode: number;
-    ResultDesc: string;
+    ResultDesc:  string;
     OriginatorConversationID: string;
     ConversationID: string;
     TransactionID: string;
-    ResultParameters?: {
-      ResultParameter: Array<{
+    ResultParameters?:  {
+      ResultParameter:  Array<{
         Key: string;
         Value: string | number;
       }>;
     };
     ReferenceData?: {
       ReferenceItem: Array<{
-        Key: string;
+        Key:  string;
         Value: string;
       }>;
     };
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
   try {
     const body = (await req.json()) as MpesaB2CCallbackData;
-    console.log("B2C Callback body:", JSON. stringify(body, null, 2));
+    console.log("B2C Callback body:", JSON.stringify(body, null, 2));
 
     const { Result } = body;
     const {
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const convex = getConvexClient();
 
     // Find the ticket by ConversationID
-    const ticket = await convex.query(api.tickets.getByRefundConversationId, {
+    const ticket = await convex. query(api.tickets.getByRefundConversationId, {
       conversationId: ConversationID,
     });
 
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
           ResultCode: 1,
           ResultDesc: "Ticket not found",
         }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
+        { status: 404, headers: { "Content-Type":  "application/json" } }
       );
     }
 
@@ -67,22 +67,22 @@ export async function POST(req: Request) {
       console.log(`Refund successful for ticket ${ticket._id}`);
 
       // Extract refund details
-      const resultParams:  Record<string, any> = {};
-      ResultParameters?.ResultParameter?. forEach((param) => {
+      const resultParams:  Record<string, string | number> = {};
+      ResultParameters?.ResultParameter?.forEach((param:  { Key: string; Value: string | number }) => {
         resultParams[param.Key] = param.Value;
       });
 
       const refundMetadata = {
         transactionId: TransactionID,
-        transactionAmount:  resultParams.TransactionAmount || ticket.amount,
+        transactionAmount: resultParams.TransactionAmount || ticket.amount,
         transactionReceipt: resultParams.TransactionReceipt || TransactionID,
         recipientPhoneNumber: 
-          resultParams.ReceiverPartyPublicName || ticket. phoneNumber,
+          resultParams.ReceiverPartyPublicName || ticket.phoneNumber,
         b2CUtilityAccountAvailableFunds: 
           resultParams.B2CUtilityAccountAvailableFunds,
         b2CWorkingAccountAvailableFunds: 
           resultParams.B2CWorkingAccountAvailableFunds,
-        transactionCompletedDateTime:
+        transactionCompletedDateTime: 
           resultParams.TransactionCompletedDateTime || new Date().toISOString(),
       };
 
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       await convex. mutation(api.tickets.updateTicketRefundStatus, {
         ticketId: ticket._id,
         status: "refunded",
-        refundTransactionId:  TransactionID,
+        refundTransactionId: TransactionID,
         refundMetadata,
         refundCompletedAt: new Date().toISOString(),
       });
@@ -119,9 +119,9 @@ export async function POST(req: Request) {
 
     // Acknowledge receipt to M-Pesa
     return new Response(
-      JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }),
+      JSON.stringify({ ResultCode: 0, ResultDesc:  "Accepted" }),
       {
-        status:  200,
+        status: 200,
         headers: { "Content-Type": "application/json" },
       }
     );

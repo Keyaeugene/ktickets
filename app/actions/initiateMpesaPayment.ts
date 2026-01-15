@@ -1,12 +1,10 @@
 "use server";
 
-import { v } from "convex/values";
-
 interface MpesaPaymentRequest {
   eventId: string;
   userId: string;
   amount: number;
-  phoneNumber?: string;
+  phoneNumber?:  string;
 }
 
 interface MpesaPaymentResponse {
@@ -20,10 +18,10 @@ export async function initiateMpesaPayment(
   request: MpesaPaymentRequest
 ): Promise<MpesaPaymentResponse> {
   try {
-    const { eventId, userId, amount, phoneNumber } = request;
+    const { eventId, userId, amount } = request;
 
     // TODO: Validate inputs
-    if (!eventId || !userId || !amount) {
+    if (!eventId || !userId || ! amount) {
       return {
         success: false,
         error: "Missing required fields",
@@ -43,7 +41,7 @@ export async function initiateMpesaPayment(
         "Authorization": `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
+      body: JSON. stringify({
         BusinessShortCode: process.env.MPESA_SHORT_CODE,
         Password: generatePassword(),
         Timestamp: getCurrentTimestamp(),
@@ -52,7 +50,7 @@ export async function initiateMpesaPayment(
         PartyA: phoneNumber,
         PartyB: process.env.MPESA_SHORT_CODE,
         PhoneNumber: phoneNumber,
-        CallBackURL: `${process.env.NEXT_PUBLIC_APP_URL}/api/mpesa/callback`,
+        CallBackURL:  `${process.env.NEXT_PUBLIC_APP_URL}/api/mpesa/callback`,
         AccountReference: eventId,
         TransactionDesc: "Ticket Purchase",
       }),
@@ -64,7 +62,7 @@ export async function initiateMpesaPayment(
     //   eventId,
     //   userId,
     //   amount,
-    //   phoneNumber: userPhoneNumber,
+    //   phoneNumber:  userPhoneNumber,
     //   status: "pending",
     //   mpesaCheckoutRequestId: mpesaResponse.CheckoutRequestID,
     // });
@@ -75,27 +73,13 @@ export async function initiateMpesaPayment(
     return {
       success: true,
       paymentId,
-      message: "Payment initiated. Check your phone for M-Pesa prompt.",
+      message: "Payment initiated.  Check your phone for M-Pesa prompt.",
     };
   } catch (error) {
     console.error("Error initiating M-Pesa payment:", error);
     return {
       success: false,
-      error: "Failed to initiate payment. Please try again.",
+      error: "Failed to initiate payment.  Please try again.",
     };
   }
-}
-
-// Helper function to generate M-Pesa password (remove when using real M-Pesa)
-function generatePassword(): string {
-  // TODO: Implement M-Pesa password generation
-  // This is a placeholder
-  return "placeholder_password";
-}
-
-// Helper function to get current timestamp (remove when using real M-Pesa)
-function getCurrentTimestamp(): string {
-  // TODO: Format timestamp for M-Pesa API
-  const now = new Date();
-  return now.toISOString().replace(/[-:]/g, "").split(".")[0];
 }
